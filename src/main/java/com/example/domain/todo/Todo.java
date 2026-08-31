@@ -67,4 +67,17 @@ public class Todo extends BaseEntity {
 		this.content = content;
 		this.dueDate = dueDate;
 	}
+
+	// PUT은 전체 교체다 — content·dueDate 생략 시 null로 덮어써도 된다 (title·status는 NOT NULL이라 호출부가 보장, API_SPEC 4.5)
+	public void replace(String title, String content, LocalDate dueDate, TodoStatus status) {
+		this.title = title;
+		this.content = content;
+		this.dueDate = dueDate;
+		this.status = status;
+	}
+
+	// PATCH 상태 변경은 멱등이어야 한다 — 클라이언트가 지정한 목표 상태로 그대로 설정한다 (불변 규칙 13)
+	public void changeStatus(TodoStatus status) {
+		this.status = status;
+	}
 }
