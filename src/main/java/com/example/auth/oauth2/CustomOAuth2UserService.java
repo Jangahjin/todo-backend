@@ -11,13 +11,18 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 신규 이메일은 자동 가입(password=NULL), 기존 이메일은 그 계정으로 로그인시키되
  * provider는 덮어쓰지 않는다 — 최초 가입 수단을 유지한다 (PRD 13.1).
  * loadUser()가 실제 HTTP 왕복(super.loadUser)을 하고, 계정 연동 로직 자체는
  * resolveUser()로 분리해 OAuth2 핸드셰이크 없이 단위 테스트할 수 있게 했다.
+ *
+ * ⚠️ resolveUser()에 @Transactional을 붙이지 않는다 — loadUser()가 this.resolveUser(...)로
+ * 자기 자신을 호출하는데, 이는 Spring 프록시를 거치지 않아(self-invocation) 애노테이션이
+ * 조용히 무시된다(실제 동작에는 영향 없음: findByEmail/save는 SimpleJpaRepository가 메서드
+ * 단위로 이미 트랜잭션 처리한다). 아무 효과도 없는 애노테이션을 남겨 "트랜잭션으로
+ * 묶여 있다"고 착각하게 만드느니, 차라리 빼는 쪽을 택했다 (실측 2026-08-31 재검토).
  */
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
@@ -35,7 +40,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		return resolveUser(registrationId, oAuth2User.getAttributes());
 	}
 
-	@Transactional
 	public CustomOAuth2User resolveUser(String registrationId, Map<String, Object> attributes) {
 		OAuth2UserInfo userInfo = parseUserInfo(registrationId, attributes);
 		String email = userInfo.getEmail();

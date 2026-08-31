@@ -45,4 +45,12 @@ class OAuth2UserInfoTest {
 		assertThat(userInfo.getEmail()).isNull();
 		assertThat(userInfo.getName()).isNull();
 	}
+
+	@Test
+	void kakaoUserInfoWithoutIdReturnsActualNullNotTheStringNull() {
+		// String.valueOf(null)이 문자열 "null"을 반환하는 함정 회귀 테스트 (재검토 2026-08-31)
+		KakaoOAuth2UserInfo userInfo = new KakaoOAuth2UserInfo(Map.of("kakao_account", Map.of("email", "no-id@example.com")));
+
+		assertThat(userInfo.getProviderId()).isNull();
+	}
 }

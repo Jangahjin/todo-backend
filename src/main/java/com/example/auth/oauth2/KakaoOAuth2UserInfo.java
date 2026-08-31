@@ -13,7 +13,10 @@ public class KakaoOAuth2UserInfo implements OAuth2UserInfo {
 
 	@Override
 	public String getProviderId() {
-		return String.valueOf(attributes.get("id"));
+		// String.valueOf(null)은 실제 null이 아니라 문자열 "null"을 반환한다 — id가 없을 때
+		// providerId에 그 네 글자가 그대로 저장되는 걸 막는다 (실측 2026-08-31 재검토로 발견)
+		Object id = attributes.get("id");
+		return id == null ? null : String.valueOf(id);
 	}
 
 	@Override
