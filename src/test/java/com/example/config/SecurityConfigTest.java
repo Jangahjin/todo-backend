@@ -72,11 +72,11 @@ class SecurityConfigTest extends IntegrationTestSupport {
 	}
 
 	@Test
-	void signupAndLoginBypassAuthenticationEvenWithoutAController() throws Exception {
-		// 컨트롤러가 아직 없어(Task 013) 핸들러 부재로 404가 나지만, 그 자체가 인증 필터를 통과했다는 증거다.
-		// permitAll이 아니었다면 컨트롤러 유무와 무관하게 401이 먼저 응답됐을 것이다.
-		mockMvc.perform(get("/api/auth/signup")).andExpect(status().isNotFound());
-		mockMvc.perform(get("/api/auth/login")).andExpect(status().isNotFound());
+	void signupAndLoginBypassAuthentication() throws Exception {
+		// signup/login은 POST로만 매핑돼 있어(Task 013) GET은 405가 나지만, 401이 아니라는 사실 자체가
+		// 인증 필터를 permitAll로 통과했다는 증거다. permitAll이 아니었다면 405보다 401이 먼저 응답됐을 것이다.
+		mockMvc.perform(get("/api/auth/signup")).andExpect(status().isMethodNotAllowed());
+		mockMvc.perform(get("/api/auth/login")).andExpect(status().isMethodNotAllowed());
 	}
 
 	@Test

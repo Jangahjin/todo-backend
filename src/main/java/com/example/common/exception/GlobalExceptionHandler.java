@@ -3,22 +3,30 @@ package com.example.common.exception;
 import com.example.common.dto.ApiResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
-import org.springframework.web.ErrorResponse;
-import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
  * 컨트롤러 계층에서 던져진 예외를 ApiResponse 포맷으로 일괄 변환한다 (CLAUDE.md 4장).
  * ⚠️ 인증 필터 단계의 401(AUTH_003~005)은 DispatcherServlet 바깥에서 발생해 여기서 잡히지 않는다.
  * 그 경로는 JwtAuthenticationEntryPoint가 별도로 처리한다 (Task 012, API_SPEC 2.2).
+ *
+ * ResponseEntityExceptionHandler를 상속한다 — HttpRequestMethodNotSupportedException(405),
+ * NoResourceFoundException(404), HttpMessageNotReadableException(400) 등 Spring MVC가
+ * 자체적으로 던지는 모든 표준 예외가 결국 handleExceptionInternal 한 곳으로 모이므로,
+ * 이런 예외들을 개별적으로 나열하지 않아도 원래 상태코드를 보존하면서 ApiResponse로 감쌀 수 있다.
+ * (실측 2026-08-31: 개별 @ExceptionHandler를 나열하는 방식은 매번 새 프레임워크 예외가
+ * 나타날 때마다 빠뜨려 catch-all이 500으로 뭉개는 문제를 반복했다.)
  */
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(CustomException.class)
 	public ResponseEntity<ApiResponse<Void>> handleCustomException(CustomException e) {
@@ -27,27 +35,22 @@ public class GlobalExceptionHandler {
 				.body(ApiResponse.fail(e.getMessage(), errorCode.name()));
 	}
 
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(
-			MethodArgumentNotValidException e) {
+	@Override
+	protected ResponseEntity<Object> handleMethodArgumentNotValid(
+			MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 		Map<String, String> fieldErrors = new LinkedHashMap<>();
-		for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
+		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
 			fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
 		}
 		return ResponseEntity.status(ErrorCode.COMMON_001.getHttpStatus())
 				.body(ApiResponse.fail(fieldErrors, ErrorCode.COMMON_001.getDefaultMessage(), ErrorCode.COMMON_001.name()));
 	}
 
-	/**
-	 * NoResourceFoundException(매핑 안 된 경로 → 정상 404), ErrorResponseException 계열
-	 * (HttpRequestMethodNotSupportedException 등)처럼 Spring MVC가 이미 올바른 HTTP 상태코드를
-	 * 정해준 예외는 그 상태코드를 그대로 살린다. 이 핸들러가 없으면 아래 catch-all이
-	 * 이런 정상적인 4xx까지 전부 500으로 뭉개버린다 — 실측(2026-08-31)으로 드러난 문제.
-	 */
-	@ExceptionHandler({NoResourceFoundException.class, ErrorResponseException.class})
-	public ResponseEntity<ApiResponse<Void>> handleErrorResponse(ErrorResponse e) {
-		return ResponseEntity.status(e.getStatusCode())
-				.body(ApiResponse.fail(e.getBody().getDetail(), ErrorCode.COMMON_002.name()));
+	@Override
+	protected ResponseEntity<Object> handleExceptionInternal(
+			Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
+		return ResponseEntity.status(statusCode)
+				.body(ApiResponse.fail(ex.getMessage(), ErrorCode.COMMON_002.name()));
 	}
 
 	@ExceptionHandler(Exception.class)
