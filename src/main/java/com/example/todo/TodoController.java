@@ -1,6 +1,7 @@
 package com.example.todo;
 
 import com.example.common.dto.ApiResponse;
+import com.example.common.dto.PageResponse;
 import com.example.domain.todo.TodoService;
 import com.example.todo.dto.TodoCreateRequest;
 import com.example.todo.dto.TodoResponse;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** API_SPEC 4장. 모든 엔드포인트는 인증이 필요하다(SecurityConfig의 anyRequest().authenticated()). */
@@ -38,6 +40,16 @@ public class TodoController {
 	@GetMapping("/{id}")
 	public ApiResponse<TodoResponse> getOne(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
 		return ApiResponse.success(todoService.getOne(userId, id));
+	}
+
+	@GetMapping
+	public ApiResponse<PageResponse<TodoResponse>> list(
+			@AuthenticationPrincipal Long userId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(required = false) String status,
+			@RequestParam(required = false) String keyword) {
+		return ApiResponse.success(todoService.list(userId, page, size, status, keyword));
 	}
 
 	@PutMapping("/{id}")

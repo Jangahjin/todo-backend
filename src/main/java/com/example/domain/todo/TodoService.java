@@ -1,5 +1,6 @@
 package com.example.domain.todo;
 
+import com.example.common.dto.PageResponse;
 import com.example.common.exception.CustomException;
 import com.example.common.exception.ErrorCode;
 import com.example.domain.user.User;
@@ -7,6 +8,10 @@ import com.example.domain.user.UserRepository;
 import com.example.todo.dto.TodoCreateRequest;
 import com.example.todo.dto.TodoResponse;
 import com.example.todo.dto.TodoUpdateRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -15,6 +20,8 @@ import tools.jackson.databind.JsonNode;
 @Service
 @Transactional(readOnly = true)
 public class TodoService {
+
+	private static final int MAX_PAGE_SIZE = 100; // PRD 4.4 — 초과 시 100으로 절삭
 
 	private final TodoRepository todoRepository;
 	private final UserRepository userRepository;
@@ -34,6 +41,34 @@ public class TodoService {
 
 	public TodoResponse getOne(Long userId, Long todoId) {
 		return TodoResponse.from(findOwnedOrThrow(userId, todoId));
+	}
+
+	public PageResponse<TodoResponse> list(Long userId, int page, int size, String statusParam, String keyword) {
+		int clampedSize = Math.min(size, MAX_PAGE_SIZE);
+		TodoStatus status = parseOptionalStatusFilter(statusParam);
+		String keywordPattern = toKeywordPattern(keyword);
+		// 정렬은 클라이언트가 고르지 않는다 — MVP는 created_at DESC 고정 (ROADMAP Task 017)
+		Pageable pageable = PageRequest.of(page, clampedSize, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+		Page<Todo> result = todoRepository.search(userId, status, keywordPattern, pageable);
+		return PageResponse.from(result.map(TodoResponse::from));
+	}
+
+	// '%'를 미리 조합해 넘긴다 — SQL의 CONCAT(문자열, :keyword, 문자열)에 null을 통과시키면
+	// PostgreSQL이 파라미터 타입을 잘못 추론해 lower(bytea) 오류가 난다 (TodoRepository.search 참조)
+	private String toKeywordPattern(String keyword) {
+		return (keyword == null || keyword.isBlank()) ? null : "%" + keyword.toLowerCase() + "%";
+	}
+
+	private TodoStatus parseOptionalStatusFilter(String status) {
+		if (status == null || status.isBlank()) {
+			return null;
+		}
+		try {
+			return TodoStatus.valueOf(status);
+		} catch (IllegalArgumentException e) {
+			throw new CustomException(ErrorCode.COMMON_002); // 목록 필터의 잘못된 값은 COMMON_002 (API_SPEC 4.2)
+		}
 	}
 
 	@Transactional
