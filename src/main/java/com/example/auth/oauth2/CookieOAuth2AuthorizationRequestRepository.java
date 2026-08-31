@@ -62,6 +62,7 @@ public class CookieOAuth2AuthorizationRequestRepository
 		ResponseCookie cookie = ResponseCookie.from(COOKIE_NAME, value)
 				.path("/")
 				.httpOnly(true)
+				.secure(true) // 운영(M9)은 HTTPS다. localhost는 최신 브라우저가 예외로 취급해 로컬 개발에도 지장 없다
 				.sameSite("Lax")
 				.maxAge(maxAgeSeconds)
 				.build();

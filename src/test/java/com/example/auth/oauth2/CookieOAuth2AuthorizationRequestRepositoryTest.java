@@ -31,7 +31,7 @@ class CookieOAuth2AuthorizationRequestRepositoryTest {
 		repository.saveAuthorizationRequest(original, saveRequest, saveResponse);
 
 		String setCookieHeader = saveResponse.getHeader("Set-Cookie");
-		assertThat(setCookieHeader).contains("HttpOnly").contains("SameSite=Lax");
+		assertThat(setCookieHeader).contains("HttpOnly").contains("SameSite=Lax").contains("Secure");
 
 		MockHttpServletRequest loadRequest = new MockHttpServletRequest();
 		loadRequest.setCookies(extractCookie(saveResponse));
