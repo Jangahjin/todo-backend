@@ -7,6 +7,7 @@ import com.example.domain.user.User;
 import com.example.domain.user.UserRepository;
 import com.example.todo.dto.TodoCreateRequest;
 import com.example.todo.dto.TodoResponse;
+import com.example.todo.dto.TodoStatusUpdateRequest;
 import com.example.todo.dto.TodoUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -76,6 +77,19 @@ public class TodoService {
 		Todo todo = findOwnedOrThrow(userId, todoId);
 		todo.replace(request.title(), toJsonString(request.content()), request.dueDate(), parseStatus(request.status()));
 		return TodoResponse.from(todo);
+	}
+
+	@Transactional
+	public TodoResponse changeStatus(Long userId, Long todoId, TodoStatusUpdateRequest request) {
+		Todo todo = findOwnedOrThrow(userId, todoId);
+		todo.changeStatus(parseStatus(request.status())); // 목표 상태를 그대로 설정 — 서버가 반전시키지 않는다(멱등, 불변 규칙 13)
+		return TodoResponse.from(todo);
+	}
+
+	@Transactional
+	public void delete(Long userId, Long todoId) {
+		Todo todo = findOwnedOrThrow(userId, todoId);
+		todoRepository.delete(todo); // Todo의 @SQLDelete가 물리 DELETE 대신 deleted_at UPDATE를 실행한다 (불변 규칙 5)
 	}
 
 	private Todo findOwnedOrThrow(Long userId, Long todoId) {
