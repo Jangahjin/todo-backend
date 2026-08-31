@@ -85,8 +85,12 @@ class TodoRepositoryTest extends IntegrationTestSupport {
 
 	@Test
 	void todosTableIsCreatedInTestSchema() {
+		// information_schema.tables는 스키마 무관하게 DB 전체를 본다 — table_name만으로 필터링하면
+		// dev 스키마(todolistdb)에도 todos 테이블이 있을 때 2행이 나와 실패한다(실측 2026-08-31).
+		// "테스트 스키마에 생성됐는가"를 검증하는 게 목적이므로 스키마도 함께 조건에 건다.
 		String schema = jdbcTemplate.queryForObject(
-				"SELECT table_schema FROM information_schema.tables WHERE table_name = 'todos'",
+				"SELECT table_schema FROM information_schema.tables "
+						+ "WHERE table_name = 'todos' AND table_schema = 'todolistdb_test'",
 				String.class);
 
 		assertThat(schema).isEqualTo("todolistdb_test");
