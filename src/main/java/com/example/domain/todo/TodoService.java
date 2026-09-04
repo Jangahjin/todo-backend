@@ -3,6 +3,7 @@ package com.example.domain.todo;
 import com.example.common.dto.PageResponse;
 import com.example.common.exception.CustomException;
 import com.example.common.exception.ErrorCode;
+import com.example.domain.attachment.AttachmentService;
 import com.example.domain.user.User;
 import com.example.domain.user.UserRepository;
 import com.example.todo.dto.TodoCreateRequest;
@@ -26,10 +27,12 @@ public class TodoService {
 
 	private final TodoRepository todoRepository;
 	private final UserRepository userRepository;
+	private final AttachmentService attachmentService;
 
-	public TodoService(TodoRepository todoRepository, UserRepository userRepository) {
+	public TodoService(TodoRepository todoRepository, UserRepository userRepository, AttachmentService attachmentService) {
 		this.todoRepository = todoRepository;
 		this.userRepository = userRepository;
+		this.attachmentService = attachmentService;
 	}
 
 	@Transactional
@@ -37,7 +40,10 @@ public class TodoService {
 		// 인증된 사용자이므로 존재가 보장된다 — SELECT 없이 LAZY 프록시로 FK만 연결
 		User user = userRepository.getReferenceById(userId);
 		Todo todo = new Todo(user, request.title(), toJsonString(request.content()), request.dueDate());
-		return TodoResponse.from(todoRepository.save(todo));
+		todoRepository.save(todo);
+		// content(Tiptap JSON)에 남아 있는 attachmentId만 이 Todo에 연결한다 (attachment 가이드 §6)
+		attachmentService.syncLinks(userId, todo, request.content());
+		return TodoResponse.from(todo);
 	}
 
 	public TodoResponse getOne(Long userId, Long todoId) {
@@ -76,6 +82,8 @@ public class TodoService {
 	public TodoResponse update(Long userId, Long todoId, TodoUpdateRequest request) {
 		Todo todo = findOwnedOrThrow(userId, todoId);
 		todo.replace(request.title(), toJsonString(request.content()), request.dueDate(), parseStatus(request.status()));
+		// 본문에서 사라진 첨부는 soft delete, 남아 있는 첨부만 LINKED 유지 (attachment 가이드 §6)
+		attachmentService.syncLinks(userId, todo, request.content());
 		return TodoResponse.from(todo);
 	}
 
@@ -89,6 +97,7 @@ public class TodoService {
 	@Transactional
 	public void delete(Long userId, Long todoId) {
 		Todo todo = findOwnedOrThrow(userId, todoId);
+		attachmentService.deleteAllForTodo(todo); // 연결된 첨부를 고아로 남기지 않는다 (attachment 가이드 §6)
 		todoRepository.delete(todo); // Todo의 @SQLDelete가 물리 DELETE 대신 deleted_at UPDATE를 실행한다 (불변 규칙 5)
 	}
 

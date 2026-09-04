@@ -23,7 +23,14 @@ public enum ErrorCode {
 
 	// 2.3 Todo — 소유권 위반도 403이 아닌 404(TODO_001)로 응답한다 (PRD 10장, 불변 규칙 11)
 	TODO_001(HttpStatus.NOT_FOUND, "Todo를 찾을 수 없습니다."),
-	TODO_002(HttpStatus.BAD_REQUEST, "잘못된 상태값입니다.");
+	TODO_002(HttpStatus.BAD_REQUEST, "잘못된 상태값입니다."),
+
+	// 2.4 첨부파일 — 소유권 위반도 403이 아닌 404(FILE_003)로 응답한다 (불변 규칙 11, TODO_001과 동일한 이유)
+	FILE_001(HttpStatus.BAD_REQUEST, "파일 크기가 허용 범위를 초과했습니다."),
+	FILE_002(HttpStatus.BAD_REQUEST, "허용되지 않는 파일 형식입니다."),
+	FILE_003(HttpStatus.NOT_FOUND, "첨부파일을 찾을 수 없습니다."),
+	FILE_004(HttpStatus.CONFLICT, "이미 처리된 첨부파일입니다."),
+	FILE_005(HttpStatus.BAD_REQUEST, "업로드가 완료되지 않았습니다.");
 
 	private final HttpStatus httpStatus;
 	private final String defaultMessage;

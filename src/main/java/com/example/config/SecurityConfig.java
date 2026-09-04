@@ -67,7 +67,10 @@ public class SecurityConfig {
 								"/api/auth/signup",
 								"/api/auth/login",
 								"/oauth2/**",
-								"/login/oauth2/**")
+								"/login/oauth2/**",
+								// <img> 태그가 직접 호출해 Authorization 헤더를 실을 수 없다 — 쿼리의 서명
+								// 토큰(AttachmentUrlTokenProvider)으로 컨트롤러가 직접 인가한다 (가이드 §4)
+								"/api/attachments/*/raw")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
