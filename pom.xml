@@ -36,7 +36,21 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
-	
+
+	<!-- AWS SDK v2는 내부 Jackson 사용을 software.amazon.awssdk.thirdparty.jackson.*로
+	     shade(relocate)하므로 Spring Boot 4의 Jackson 3(tools.jackson)과 충돌하지 않는다. -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.54.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<!-- Spring Boot Starters -->
 		<dependency>
@@ -71,6 +85,14 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- S3 스토리지 (첨부파일 가이드 §9) — 버전은 위 dependencyManagement의 BOM이 관리.
+		     S3Presigner는 별도 아티팩트가 아니라 이 s3 아티팩트 안에 포함되어 있다(공식 문서
+		     examples-s3-presign.html의 임포트가 별도 의존성 추가 없이 이 좌표만 전제한다). -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
