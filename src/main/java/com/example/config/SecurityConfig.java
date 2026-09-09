@@ -70,7 +70,9 @@ public class SecurityConfig {
 								"/login/oauth2/**",
 								// <img> 태그가 직접 호출해 Authorization 헤더를 실을 수 없다 — 쿼리의 서명
 								// 토큰(AttachmentUrlTokenProvider)으로 컨트롤러가 직접 인가한다 (가이드 §4)
-								"/api/attachments/*/raw")
+								"/api/attachments/*/raw",
+								// 배포 헬스체크(install.sh/redeploy.sh)가 인증 없이 호출한다
+								"/api/health")
 						.permitAll()
 						.anyRequest()
 						.authenticated())
