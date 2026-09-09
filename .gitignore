@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Deploy secrets ###
+todolist.env
+!todolist.env.example

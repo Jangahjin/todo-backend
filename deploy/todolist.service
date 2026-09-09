@@ -1,0 +1,18 @@
+[Unit]
+Description=Todolist Backend (Spring Boot)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/etc/todolist
+EnvironmentFile=/etc/todolist/todolist.env
+# t2.micro(1GB RAM) 기준 산정 — JVM 힙 512MB 고정(사용자 요구) + Metaspace/CodeCache/DirectMemory 상한 명시
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=64m -Xss512k -jar /etc/todolist/todolist.jar --spring.profiles.active=prod
+Restart=on-failure
+RestartSec=5
+# cgroup 기반 안전장치 — OOM killer가 개입하기 전에 systemd가 선제적으로 재기동한다.
+MemoryMax=850M
+
+[Install]
+WantedBy=multi-user.target

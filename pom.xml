@@ -148,6 +148,8 @@
 	</dependencies>
 
 	<build>
+		<!-- 배포 시 매번 이름 바꾸지 않도록 jar 파일명을 고정한다 (deploy/install.sh·redeploy.sh가 todolist.jar를 찾음) -->
+		<finalName>todolist</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
